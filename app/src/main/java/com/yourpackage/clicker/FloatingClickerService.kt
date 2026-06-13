@@ -50,7 +50,7 @@ class FloatingClickerService : Service() {
     private fun showFloatingButton() {
         buttonView = LayoutInflater.from(this).inflate(R.layout.floating_button, null)
         buttonParams = WindowManager.LayoutParams(
-            80, 80,
+            100, 100,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
@@ -98,12 +98,11 @@ class FloatingClickerService : Service() {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
                 WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 100
-            y = 100
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = 200
         }
         etTime = panelView!!.findViewById(R.id.et_time)
         btnStart = panelView!!.findViewById(R.id.btn_start)
@@ -142,8 +141,8 @@ class FloatingClickerService : Service() {
     private fun getButtonCenter(): Pair<Float, Float> {
         val location = IntArray(2)
         buttonView?.getLocationOnScreen(location)
-        val x = location[0] + (buttonView?.width ?: 80) / 2f
-        val y = location[1] + (buttonView?.height ?: 80) / 2f
+        val x = location[0] + (buttonView?.width ?: 100) / 2f
+        val y = location[1] + (buttonView?.height ?: 100) / 2f
         return Pair(x, y)
     }
 
@@ -214,8 +213,7 @@ class FloatingClickerService : Service() {
             override fun run() {
                 if (!isRunning) return
                 val elapsed = System.currentTimeMillis() - startTime
-                val totalElapsedMillis = (System.currentTimeMillis() - startTime)
-                val remaining = totalMillis - totalElapsedMillis
+                val remaining = totalMillis - elapsed
                 if (remaining > 0) {
                     val secs = remaining / 1000
                     val millis = remaining % 1000
