@@ -3,6 +3,7 @@ package com.yourpackage.clicker
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 
 class ClickerAccessibilityService : AccessibilityService() {
@@ -21,8 +22,17 @@ class ClickerAccessibilityService : AccessibilityService() {
     }
     fun dispatchTap(x: Float, y: Float) {
         val path = Path().apply { moveTo(x, y) }
-        val stroke = GestureDescription.StrokeDescription(path, 0, 50)
+        // FIX: 100ms stroke — long enough for apps to register as a real press
+        val stroke = GestureDescription.StrokeDescription(path, 0, 100)
         val gesture = GestureDescription.Builder().addStroke(stroke).build()
-        dispatchGesture(gesture, null, null)
+        val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                Log.d("CLICKER", "Tap completed at $x, $y")
+            }
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                Log.d("CLICKER", "Tap CANCELLED at $x, $y")
+            }
+        }, null)
+        Log.d("CLICKER", "dispatchGesture queued: $dispatched")
     }
 }

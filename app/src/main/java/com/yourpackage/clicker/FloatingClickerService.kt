@@ -13,7 +13,7 @@ import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
 import android.os.Process
-import android.view.Choreographer
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -163,24 +163,8 @@ class FloatingClickerService : Service() {
     }
 
     private fun performTap(x: Float, y: Float) {
-        // Add FLAG_NOT_TOUCHABLE to the button window so the system routes
-        // the injected touch to the app underneath instead of the overlay
-        buttonParams?.let { params ->
-            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-            windowManager.updateViewLayout(buttonView, params)
-        }
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            ClickerAccessibilityService.instance?.dispatchTap(x, y)
-
-            // Restore the flag so the button can be dragged again
-            Handler(Looper.getMainLooper()).postDelayed({
-                buttonParams?.let { params ->
-                    params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
-                    windowManager.updateViewLayout(buttonView, params)
-                }
-            }, 100)
-        }, 50)
+        Log.d("CLICKER", "Performing tap at $x, $y")
+        ClickerAccessibilityService.instance?.dispatchTap(x, y)
     }
 
     private fun startClicking() {
@@ -200,6 +184,7 @@ class FloatingClickerService : Service() {
         }
         val intervalNanos = (intervalSec * 1_000_000_000L).toLong()
 
+        // 1ST TAP — immediate, direct
         val (x1, y1) = getButtonCenter()
         performTap(x1, y1)
 
@@ -212,11 +197,13 @@ class FloatingClickerService : Service() {
         handler.post {
             val targetTime = System.nanoTime() + intervalNanos
 
+            // Sleep until 3ms before target
             while (System.nanoTime() < targetTime - 3_000_000L) {
                 if (!isRunning) return@post
                 try { Thread.sleep(1) } catch (e: InterruptedException) { return@post }
             }
 
+            // Busy-wait the final 3ms
             while (System.nanoTime() < targetTime) {
                 if (!isRunning) return@post
                 Thread.yield()
@@ -224,15 +211,15 @@ class FloatingClickerService : Service() {
 
             if (!isRunning) return@post
 
+            // 2ND TAP — direct dispatch on main thread, NO Choreographer delay
             val (finalX, finalY) = getButtonCenter()
             Handler(Looper.getMainLooper()).post {
-                Choreographer.getInstance().postFrameCallback {
-                    if (!isRunning) return@postFrameCallback
-                    performTap(finalX, finalY)
-                    isRunning = false
-                    tvCountdown.text = "DONE"
-                }
+                if (!isRunning) return@post
+                performTap(finalX, finalY)
+                isRunning = false
+                tvCountdown.text = "DONE"
             }
+            // Thread ends naturally here.
         }
         startCountdownUI(intervalSec)
     }
