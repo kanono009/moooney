@@ -1,61 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="220dp"
+    android:id="@+id/panel_root"
+    android:layout_width="280dp"
     android:layout_height="wrap_content"
-    android:background="#DD000000"
+    android:background="#FF1A1A2E"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="16dp">
     <LinearLayout
-        android:id="@+id/panel_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#444444"
-        android:padding="8dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="12dp">
+        <View
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="@drawable/ic_drag_handle" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:text="Auto Clicker"
             android:textColor="#FFFFFF"
+            android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>
     <EditText
         android:id="@+id/et_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="#333333"
+        android:background="#FF16213E"
         android:hint="0.000 - 31.000"
         android:inputType="numberDecimal"
-        android:padding="8dp"
+        android:padding="12dp"
         android:text="21.000"
         android:textColor="#FFFFFF"
-        android:textColorHint="#AAAAAA" />
+        android:textColorHint="#AAAAAA"
+        android:textSize="16sp" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
         android:orientation="horizontal">
         <Button
             android:id="@+id/btn_start"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:text="START" />
+            android:backgroundTint="#FF0F3460"
+            android:text="START"
+            android:textColor="#FFFFFF" />
         <Button
             android:id="@+id/btn_stop"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="STOP" />
+            android:backgroundTint="#FF0F3460"
+            android:text="STOP"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
     <TextView
         android:id="@+id/tv_countdown"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
         android:gravity="center"
         android:text="0.000"
         android:textColor="#00FF00"
-        android:textSize="28sp"
+        android:textSize="32sp"
         android:textStyle="bold" />
 </LinearLayout>

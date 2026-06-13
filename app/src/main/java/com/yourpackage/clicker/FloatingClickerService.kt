@@ -50,7 +50,7 @@ class FloatingClickerService : Service() {
     private fun showFloatingButton() {
         buttonView = LayoutInflater.from(this).inflate(R.layout.floating_button, null)
         buttonParams = WindowManager.LayoutParams(
-            100, 100,
+            80, 80,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
@@ -101,8 +101,9 @@ class FloatingClickerService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            y = 200
+            gravity = Gravity.CENTER
+            x = 0
+            y = -200
         }
         etTime = panelView!!.findViewById(R.id.et_time)
         btnStart = panelView!!.findViewById(R.id.btn_start)
@@ -110,40 +111,63 @@ class FloatingClickerService : Service() {
         tvCountdown = panelView!!.findViewById(R.id.tv_countdown)
         btnStart.setOnClickListener { startClicking() }
         btnStop.setOnClickListener { stopClicking() }
-        val header = panelView!!.findViewById<View>(R.id.panel_header)
-        header.setOnTouchListener(object : View.OnTouchListener {
-            var initialX = 0
-            var initialY = 0
-            var touchX = 0f
-            var touchY = 0f
+
+        val rootPanel = panelView!!.findViewById<View>(R.id.panel_root)
+        rootPanel.setOnTouchListener(object : View.OnTouchListener {
+            var startPanelX = 0f
+            var startPanelY = 0f
+            var startRawX = 0f
+            var startRawY = 0f
+            var isDragging = false
+
             override fun onTouch(v: View, event: MotionEvent): Boolean {
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        initialX = panelParams!!.x
-                        initialY = panelParams!!.y
-                        touchX = event.rawX
-                        touchY = event.rawY
+                        startPanelX = panelParams!!.x.toFloat()
+                        startPanelY = panelParams!!.y.toFloat()
+                        startRawX = event.rawX
+                        startRawY = event.rawY
+                        isDragging = false
                         return true
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        panelParams!!.x = initialX + (event.rawX - touchX).toInt()
-                        panelParams!!.y = initialY + (event.rawY - touchY).toInt()
-                        windowManager.updateViewLayout(panelView, panelParams)
+                        val dx = event.rawX - startRawX
+                        val dy = event.rawY - startRawY
+                        if (!isDragging && (kotlin.math.abs(dx) > 10 || kotlin.math.abs(dy) > 10)) {
+                            isDragging = true
+                        }
+                        if (isDragging) {
+                            panelParams!!.x = (startPanelX + dx).toInt()
+                            panelParams!!.y = (startPanelY + dy).toInt()
+                            windowManager.updateViewLayout(panelView, panelParams)
+                        }
                         return true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        return isDragging
                     }
                 }
                 return false
             }
         })
+
         windowManager.addView(panelView, panelParams)
     }
 
     private fun getButtonCenter(): Pair<Float, Float> {
         val location = IntArray(2)
         buttonView?.getLocationOnScreen(location)
-        val x = location[0] + (buttonView?.width ?: 100) / 2f
-        val y = location[1] + (buttonView?.height ?: 100) / 2f
+        val x = location[0] + (buttonView?.width ?: 80) / 2f
+        val y = location[1] + (buttonView?.height ?: 80) / 2f
         return Pair(x, y)
+    }
+
+    private fun performTap(x: Float, y: Float) {
+        buttonView?.visibility = View.INVISIBLE
+        ClickerAccessibilityService.instance?.dispatchTap(x, y)
+        Handler(Looper.getMainLooper()).postDelayed({
+            buttonView?.visibility = View.VISIBLE
+        }, 100)
     }
 
     private fun startClicking() {
@@ -163,9 +187,8 @@ class FloatingClickerService : Service() {
         }
         val intervalNanos = (intervalSec * 1_000_000_000L).toLong()
 
-        // 1ST TAP — immediate
         val (x1, y1) = getButtonCenter()
-        service.dispatchTap(x1, y1)
+        performTap(x1, y1)
 
         if (intervalNanos <= 0) return
 
@@ -176,13 +199,11 @@ class FloatingClickerService : Service() {
         handler.post {
             val targetTime = System.nanoTime() + intervalNanos
 
-            // Sleep until 3ms before target
             while (System.nanoTime() < targetTime - 3_000_000L) {
                 if (!isRunning) return@post
                 try { Thread.sleep(1) } catch (e: InterruptedException) { return@post }
             }
 
-            // Busy-wait the final 3ms
             while (System.nanoTime() < targetTime) {
                 if (!isRunning) return@post
                 Thread.yield()
@@ -190,17 +211,15 @@ class FloatingClickerService : Service() {
 
             if (!isRunning) return@post
 
-            // 2ND TAP — frame-locked on main thread
             val (finalX, finalY) = getButtonCenter()
             Handler(Looper.getMainLooper()).post {
                 Choreographer.getInstance().postFrameCallback {
                     if (!isRunning) return@postFrameCallback
-                    ClickerAccessibilityService.instance?.dispatchTap(finalX, finalY)
+                    performTap(finalX, finalY)
                     isRunning = false
                     tvCountdown.text = "DONE"
                 }
             }
-            // Thread ends naturally here. NO while loop.
         }
         startCountdownUI(intervalSec)
     }
