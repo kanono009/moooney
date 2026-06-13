@@ -1,9 +1,9 @@
 package com.yourpackage.clicker
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.GestureDescription
 
 class ClickerAccessibilityService : AccessibilityService() {
     companion object {
