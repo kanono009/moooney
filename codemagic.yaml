@@ -4,7 +4,6 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
-      android_sdk: 34
       groups:
         - keystore_credentials
       vars:
@@ -15,6 +14,7 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
       - name: Build Android APK
         script: |
+          chmod +x gradlew
           ./gradlew assembleRelease
     artifacts:
       - app/build/outputs/apk/**/*.apk
