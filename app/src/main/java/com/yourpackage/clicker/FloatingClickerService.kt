@@ -163,11 +163,24 @@ class FloatingClickerService : Service() {
     }
 
     private fun performTap(x: Float, y: Float) {
-        buttonView?.visibility = View.INVISIBLE
-        ClickerAccessibilityService.instance?.dispatchTap(x, y)
+        // Add FLAG_NOT_TOUCHABLE to the button window so the system routes
+        // the injected touch to the app underneath instead of the overlay
+        buttonParams?.let { params ->
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            windowManager.updateViewLayout(buttonView, params)
+        }
+
         Handler(Looper.getMainLooper()).postDelayed({
-            buttonView?.visibility = View.VISIBLE
-        }, 100)
+            ClickerAccessibilityService.instance?.dispatchTap(x, y)
+
+            // Restore the flag so the button can be dragged again
+            Handler(Looper.getMainLooper()).postDelayed({
+                buttonParams?.let { params ->
+                    params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+                    windowManager.updateViewLayout(buttonView, params)
+                }
+            }, 100)
+        }, 50)
     }
 
     private fun startClicking() {
